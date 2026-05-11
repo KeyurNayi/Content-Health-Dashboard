@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Sitecore brand colors */
+  --sc-red: #EB1F1F;
+  --sc-red-dark: #C41717;
+  --sc-red-light: #FF4444;
+  
+  /* Neutrals */
+  --sc-dark: #0D0D0D;
+  --sc-dark-2: #1A1A1A;
+  --sc-dark-3: #2A2A2A;
+  --sc-mid: #555555;
+  --sc-light: #F7F7F7;
+  --sc-white: #FFFFFF;
+
+  /* Status */
+  --color-pass: #22C55E;
+  --color-warn: #F59E0B;
+  --color-fail: #EF4444;
+
+  /* Grade colors */
+  --grade-a: #22C55E;
+  --grade-b: #84CC16;
+  --grade-c: #F59E0B;
+  --grade-d: #F97316;
+  --grade-f: #EF4444;
+
+  /* Typography */
+  --font-display: 'DM Sans', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--sc-light);
+  color: var(--sc-dark);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* Score ring animation */
+@keyframes scoreRingFill {
+  from { stroke-dashoffset: 251; }
+  to { stroke-dashoffset: var(--target-offset); }
+}
+
+.score-ring-circle {
+  animation: scoreRingFill 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: stroke 0.3s ease;
+}
+
+/* Fade in cards */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-animate {
+  animation: fadeSlideUp 0.4s ease forwards;
+}
+
+.card-animate:nth-child(1) { animation-delay: 0.05s; }
+.card-animate:nth-child(2) { animation-delay: 0.10s; }
+.card-animate:nth-child(3) { animation-delay: 0.15s; }
+.card-animate:nth-child(4) { animation-delay: 0.20s; }
+.card-animate:nth-child(5) { animation-delay: 0.25s; }
+.card-animate:nth-child(6) { animation-delay: 0.30s; }
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Pill badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.badge-pass { background: #DCFCE7; color: #15803D; }
+.badge-warn { background: #FEF3C7; color: #92400E; }
+.badge-fail { background: #FEE2E2; color: #B91C1C; }
+
+/* Grade badge */
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+}
+.grade-A { background: var(--grade-a); }
+.grade-B { background: var(--grade-b); }
+.grade-C { background: var(--grade-c); }
+.grade-D { background: var(--grade-d); }
+.grade-F { background: var(--grade-f); }

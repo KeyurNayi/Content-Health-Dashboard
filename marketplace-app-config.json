@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.sitecore.com/marketplace/app-config.schema.json",
+  "name": "Content Health Dashboard",
+  "description": "Monitor and improve content quality, SEO health, and accessibility across your XM Cloud site. Get real-time scores for meta titles, descriptions, alt text, word count, and more.",
+  "version": "1.0.0",
+  "author": "Your Name / Company",
+  "category": "SEO & Analytics",
+  "icon": "https://your-deployed-app.vercel.app/icon.png",
+  "appUrl": "https://your-deployed-app.vercel.app",
+  "extensionPoints": [
+    {
+      "type": "dashboard-widget",
+      "url": "https://your-deployed-app.vercel.app/dashboard-widget",
+      "label": "Content Health",
+      "description": "Site-wide content health scores at a glance",
+      "defaultSize": "medium"
+    },
+    {
+      "type": "pages-context-panel",
+      "url": "https://your-deployed-app.vercel.app/pages-context-panel",
+      "label": "Content Health",
+      "description": "Real-time health check for the page you are editing",
+      "icon": "CheckBadge"
+    },
+    {
+      "type": "fullscreen",
+      "url": "https://your-deployed-app.vercel.app/standalone",
+      "label": "Content Health Dashboard",
+      "description": "Full site audit with page-by-page breakdown and charts",
+      "navLabel": "Health Dashboard"
+    }
+  ],
+  "permissions": {
+    "allowPopups": false,
+    "allowClipboard": true
+  },
+  "apiAccess": {
+    "authoringApi": true,
+    "pagesApi": true,
+    "experienceEdgeApi": false
+  }
+}
