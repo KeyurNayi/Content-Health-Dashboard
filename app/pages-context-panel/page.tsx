@@ -139,15 +139,6 @@ export default function PagesContextPanel() {
           }
           return prev;
         });
-        setAllPages((prev) => {
-          const normalize = (s: string) => s.toLowerCase().replace(/\/$/, "");
-          const match = prev.find(
-            (p) => normalize(p.pageUrl) === normalize(pageUrl) ||
-                   normalize(p.pageUrl).endsWith(normalize(pageUrl))
-          );
-          if (match) { setResult(match); setShowSelector(false); }
-          return prev;
-        });
       }
     };
     window.addEventListener("message", handleMessage);
