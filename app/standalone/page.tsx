@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScoreRing } from '@/components/ScoreRing';
 import { StatusIcon } from '@/components/StatusIcon';
 import { scorePage, buildSiteSummary, PageHealthResult, SiteHealthSummary } from '@/lib/healthScorer';
@@ -13,6 +13,8 @@ export default function StandalonePage() {
     const [loading, setLoading] = useState(true);
     const [dataSource, setDataSource] = useState<'demo' | 'sitecore' | 'error'>('demo');
     const [siteName, setSiteName] = useState('');
+    const [sortBy, setSortBy] = useState<'score-desc' | 'score-asc' | 'name-asc' | 'name-desc' | 'date-desc' | 'date-asc'>('score-desc');
+    const [gradeFilter, setGradeFilter] = useState<'ALL' | 'A' | 'B' | 'C' | 'D' | 'F'>('ALL');
 
     const loadData = async () => {
         setLoading(true);
@@ -47,6 +49,94 @@ export default function StandalonePage() {
         window.addEventListener('keydown', handleEscape);
         return () => window.removeEventListener('keydown', handleEscape);
     }, [selected]);
+    const radarData = selected
+        ? selected.checks.map((c) => ({
+              subject: c.label.length > 12 ? c.label.substring(0, 12) : c.label,
+              score: typeof c.score === 'number' ? c.score : 0,
+              fullMark: 100,
+          }))
+        : [];
+    const displayedPages = useMemo(() => {
+        if (!summary) return [];
+
+        let pages = [...summary.pages];
+
+        // Grade Filter
+        if (gradeFilter !== 'ALL') {
+            pages = pages.filter((page) => page.grade === gradeFilter);
+        }
+
+        // Sorting
+        switch (sortBy) {
+            case 'score-desc':
+                pages.sort((a, b) => b.overallScore - a.overallScore);
+                break;
+
+            case 'score-asc':
+                pages.sort((a, b) => a.overallScore - b.overallScore);
+                break;
+
+            case 'name-asc':
+                pages.sort((a, b) => a.pageName.localeCompare(b.pageName));
+                break;
+
+            case 'name-desc':
+                pages.sort((a, b) => b.pageName.localeCompare(a.pageName));
+                break;
+
+            case 'date-desc':
+                pages.sort((a, b) => {
+                    const getDateValue = (page: any) => {
+                        const rawDate = page.lastModified;
+
+                        if (!rawDate) return 0;
+
+                        // Handle Sitecore format: 20260430T050610Z
+                        const match = rawDate.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+
+                        if (match) {
+                            const [, year, month, day, hour, minute, second] = match;
+
+                            return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+                        }
+
+                        // Fallback for ISO or standard date strings
+                        const parsed = new Date(rawDate).getTime();
+                        return isNaN(parsed) ? 0 : parsed;
+                    };
+
+                    return getDateValue(b) - getDateValue(a);
+                });
+                break;
+
+            case 'date-asc':
+                pages.sort((a, b) => {
+                    const getDateValue = (page: any) => {
+                        const rawDate = page.lastModified;
+
+                        if (!rawDate) return 0;
+
+                        // Handle Sitecore format: 20260430T050610Z
+                        const match = rawDate.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+
+                        if (match) {
+                            const [, year, month, day, hour, minute, second] = match;
+
+                            return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+                        }
+
+                        // Fallback for ISO or standard date strings
+                        const parsed = new Date(rawDate).getTime();
+                        return isNaN(parsed) ? 0 : parsed;
+                    };
+
+                    return getDateValue(a) - getDateValue(b);
+                });
+                break;
+        }
+
+        return pages;
+    }, [summary, sortBy, gradeFilter]);
 
     if (loading) return <FullscreenSkeleton />;
     if (!summary) return null;
@@ -58,6 +148,18 @@ export default function StandalonePage() {
         D: '#F97316',
         F: '#EF4444',
     };
+    const headerStyle: React.CSSProperties = {
+        padding: '10px 16px',
+        textAlign: 'left',
+        fontSize: 12,
+        fontWeight: 800,
+        color: '#1a1a1a',
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        borderBottom: '1px solid #F3F4F6',
+        whiteSpace: 'nowrap',
+        userSelect: 'none',
+    };
 
     const chartPages = [...summary.pages].sort((a, b) => b.overallScore - a.overallScore).slice(0, 15);
 
@@ -68,14 +170,6 @@ export default function StandalonePage() {
         grade: p.grade,
         fill: gradeColors[p.grade],
     }));
-
-    const radarData = selected
-        ? selected.checks.map((c) => ({
-              subject: c.label.length > 12 ? c.label.substring(0, 12) : c.label,
-              score: typeof c.score === 'number' ? c.score : 0,
-              fullMark: 100,
-          }))
-        : [];
 
     return (
         <div style={{ fontFamily: 'var(--font-display)', background: '#F8F9FB', minHeight: '100vh', color: 'var(--sc-dark)' }}>
@@ -313,6 +407,7 @@ export default function StandalonePage() {
                         </div>
                     ))}
                 </div>
+
                 {/* Pages Table */}
                 <div style={{ background: 'white', borderRadius: 12, border: '1px solid #F3F4F6', overflow: 'hidden' }}>
                     <div
@@ -325,33 +420,71 @@ export default function StandalonePage() {
                         }}
                     >
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>All Pages</span>
-                        <span style={{ fontSize: 11, color: '#9CA3AF' }}>{summary.totalPages} pages scanned</span>
+                        <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+                            Showing {displayedPages.length} of {summary.totalPages} pages
+                        </span>
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: '#FAFAFA' }}>
-                                {['Page', 'Score', 'Grade', 'Meta Title', 'Meta Desc', 'Images Alt', 'H1', 'Words', 'Last Modified'].map((h) => (
-                                    <th
-                                        key={h}
+                                {/* Page Column */}
+                                <th style={headerStyle} onClick={() => setSortBy(sortBy === 'name-asc' ? 'name-desc' : 'name-asc')}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                                        Page
+                                        <span style={{ fontSize: 10 }}>{sortBy === 'name-asc' ? '▲' : sortBy === 'name-desc' ? '▼' : '↕'}</span>
+                                    </div>
+                                </th>
+
+                                {/* Score Column */}
+                                <th style={headerStyle} onClick={() => setSortBy(sortBy === 'score-desc' ? 'score-asc' : 'score-desc')}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                                        Score
+                                        <span style={{ fontSize: 10 }}>{sortBy === 'score-desc' ? '▼' : sortBy === 'score-asc' ? '▲' : '↕'}</span>
+                                    </div>
+                                </th>
+
+                                {/* Grade Filter */}
+                                <th style={headerStyle}>
+                                    <select
+                                        value={gradeFilter}
+                                        onChange={(e) => setGradeFilter(e.target.value as 'ALL' | 'A' | 'B' | 'C' | 'D' | 'F')}
                                         style={{
-                                            padding: '10px 16px',
-                                            textAlign: 'left',
+                                            border: '1px solid #D1D5DB',
+                                            borderRadius: 6,
+                                            padding: '4px 8px',
                                             fontSize: 11,
-                                            fontWeight: 600,
-                                            color: '#9CA3AF',
-                                            letterSpacing: '0.04em',
-                                            textTransform: 'uppercase',
-                                            borderBottom: '1px solid #F3F4F6',
-                                            whiteSpace: 'nowrap',
+                                            fontWeight: 700,
+                                            background: 'white',
+                                            cursor: 'pointer',
                                         }}
                                     >
+                                        <option value="ALL">Grade</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                        <option value="D">D</option>
+                                        <option value="F">F</option>
+                                    </select>
+                                </th>
+
+                                {/* Static Columns */}
+                                {['Meta Title', 'Meta Desc', 'Images Alt', 'H1', 'Words'].map((h) => (
+                                    <th key={h} style={headerStyle}>
                                         {h}
                                     </th>
                                 ))}
+
+                                {/* Last Modified Column */}
+                                <th style={headerStyle} onClick={() => setSortBy(sortBy === 'date-desc' ? 'date-asc' : 'date-desc')}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                                        Last Modified
+                                        <span style={{ fontSize: 10 }}>{sortBy === 'date-desc' ? '▼' : sortBy === 'date-asc' ? '▲' : '↕'}</span>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {summary.pages.map((page) => {
+                            {displayedPages.map((page) => {
                                 const getCheck = (id: string) => page.checks.find((c) => c.id === id);
                                 return (
                                     <tr
@@ -396,9 +529,41 @@ export default function StandalonePage() {
                                             <StatusIcon status={getCheck('word-count')?.status || 'fail'} size={18} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 11, color: '#9CA3AF', whiteSpace: 'nowrap' }}>
-                                            {page.lastModified
-                                                ? new Date(page.lastModified).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-                                                : '—'}
+                                            {(() => {
+                                                // 1. Prefer the normalized `updated.value` from GraphQL
+                                                // 2. Fall back to `lastModified` if available
+                                                // 3. Fall back to the __Updated field from the fields array
+                                                const rawDate =
+                                                    page.lastModified;
+
+                                                if (!rawDate) return '—';
+
+                                                let date: Date;
+
+                                                // Sitecore date format: 20260430T050610Z
+                                                const sitecoreMatch = rawDate.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+
+                                                if (sitecoreMatch) {
+                                                    const [, year, month, day, hour, minute, second] = sitecoreMatch;
+
+                                                    // Month in JavaScript Date is zero-based
+                                                    date = new Date(
+                                                        Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)),
+                                                    );
+                                                } else {
+                                                    // Fallback for ISO dates or other standard formats
+                                                    date = new Date(rawDate);
+                                                }
+
+                                                // Validate parsed date
+                                                if (isNaN(date.getTime())) return '—';
+
+                                                return date.toLocaleDateString('en-IN', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric',
+                                                });
+                                            })()}
                                         </td>
                                     </tr>
                                 );
@@ -494,51 +659,123 @@ export default function StandalonePage() {
                         </div>
 
                         {/* Modal Body - Scrollable */}
+                        {/* Modal Body - Scrollable */}
                         <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-                            {/* Radar Chart */}
-                            <div style={{ background: '#FAFAFA', borderRadius: 12, padding: '20px', marginBottom: 24 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: '#374151' }}>Performance Radar</div>
-                                <ResponsiveContainer width="100%" height={360}>
-                                    <RadarChart data={radarData}>
-                                        <PolarGrid stroke="#E5E7EB" />
-                                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#6B7280' }} />
-                                        <Radar name="Score" dataKey="score" stroke="var(--sc-red)" fill="var(--sc-red)" fillOpacity={0.2} strokeWidth={2} />
-                                    </RadarChart>
-                                </ResponsiveContainer>
-                            </div>
-
-                            {/* Detailed Checks */}
-                            <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#374151' }}>Detailed Analysis</div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
-                                {selected.checks.map((check) => (
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'minmax(380px, 40%) 1fr',
+                                    gap: 24,
+                                    alignItems: 'start',
+                                }}
+                            >
+                                {/* Left Column - Radar Chart */}
+                                <div
+                                    style={{
+                                        background: '#FAFAFA',
+                                        borderRadius: 12,
+                                        padding: '20px',
+                                        position: 'sticky',
+                                        top: 0,
+                                    }}
+                                >
                                     <div
-                                        key={check.id}
                                         style={{
-                                            background: check.status === 'fail' ? '#FFF5F5' : check.status === 'warn' ? '#FFFBEB' : '#F0FDF4',
-                                            border: `1px solid ${check.status === 'fail' ? '#FEE2E2' : check.status === 'warn' ? '#FEF3C7' : '#DCFCE7'}`,
-                                            borderRadius: 8,
-                                            padding: '16px',
+                                            fontSize: 13,
+                                            fontWeight: 700,
+                                            marginBottom: 16,
+                                            color: '#374151',
                                         }}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                                            <StatusIcon status={check.status} size={20} />
-                                            <span style={{ fontSize: 13, fontWeight: 700 }}>{check.label}</span>
-                                            <span
+                                        Performance Radar
+                                    </div>
+
+                                    <ResponsiveContainer width="100%" height={420}>
+                                        <RadarChart data={radarData}>
+                                            <PolarGrid stroke="#E5E7EB" />
+                                            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#6B7280' }} />
+                                            <Radar name="Score" dataKey="score" stroke="var(--sc-red)" fill="var(--sc-red)" fillOpacity={0.2} strokeWidth={2} />
+                                        </RadarChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                {/* Right Column - Detailed Analysis */}
+                                <div>
+                                    <div style={{ marginBottom: 16 }}>
+                                        <div
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                marginBottom: 12,
+                                                color: '#374151',
+                                            }}
+                                        >
+                                            Detailed Analysis
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                                            gap: 12,
+                                        }}
+                                    >
+                                        {selected.checks.map((check) => (
+                                            <div
+                                                key={check.id}
                                                 style={{
-                                                    marginLeft: 'auto',
-                                                    fontSize: 12,
-                                                    fontWeight: 700,
-                                                    color: check.status === 'fail' ? '#DC2626' : check.status === 'warn' ? '#D97706' : '#16A34A',
+                                                    background: check.status === 'fail' ? '#FFF5F5' : check.status === 'warn' ? '#FFFBEB' : '#F0FDF4',
+                                                    border: `1px solid ${
+                                                        check.status === 'fail' ? '#FEE2E2' : check.status === 'warn' ? '#FEF3C7' : '#DCFCE7'
+                                                    }`,
+                                                    borderRadius: 8,
+                                                    padding: '16px',
                                                 }}
                                             >
-                                                {check.score}/100
-                                            </span>
-                                        </div>
-                                        <p style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6, margin: 0 }}>{check.message}</p>
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 8,
+                                                        marginBottom: 10,
+                                                    }}
+                                                >
+                                                    <StatusIcon status={check.status} size={20} />
+                                                    <span
+                                                        style={{
+                                                            fontSize: 13,
+                                                            fontWeight: 700,
+                                                        }}
+                                                    >
+                                                        {check.label}
+                                                    </span>
+                                                    <span
+                                                        style={{
+                                                            marginLeft: 'auto',
+                                                            fontSize: 12,
+                                                            fontWeight: 700,
+                                                            color: check.status === 'fail' ? '#DC2626' : check.status === 'warn' ? '#D97706' : '#16A34A',
+                                                        }}
+                                                    >
+                                                        {check.score}/100
+                                                    </span>
+                                                </div>
+
+                                                <p
+                                                    style={{
+                                                        fontSize: 12,
+                                                        color: '#6B7280',
+                                                        lineHeight: 1.6,
+                                                        margin: 0,
+                                                    }}
+                                                >
+                                                    {check.message}
+                                                </p>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -616,7 +853,7 @@ function PageScoreTooltip({ active, payload }: any) {
                     marginBottom: 4,
                 }}
             >
-                <span style={{ color: '#9CA3AF' }}>Score</span>
+                <span style={{ color: '#9CA3AF', fontWeight: 700 }}>Score</span>
                 <span style={{ fontWeight: 700 }}>{data.score}/100</span>
             </div>
 
@@ -627,7 +864,7 @@ function PageScoreTooltip({ active, payload }: any) {
                     fontSize: 12,
                 }}
             >
-                <span style={{ color: '#9CA3AF' }}>Grade</span>
+                <span style={{ color: '#9CA3AF', fontWeight: 700 }}>Grade</span>
                 <span
                     style={{
                         fontWeight: 700,
