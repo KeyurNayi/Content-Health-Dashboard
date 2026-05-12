@@ -15,6 +15,9 @@ export default function StandalonePage() {
     const [siteName, setSiteName] = useState('');
     const [sortBy, setSortBy] = useState<'score-desc' | 'score-asc' | 'name-asc' | 'name-desc' | 'date-desc' | 'date-asc'>('score-desc');
     const [gradeFilter, setGradeFilter] = useState<'ALL' | 'A' | 'B' | 'C' | 'D' | 'F'>('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     const loadData = async () => {
         setLoading(true);
@@ -64,6 +67,16 @@ export default function StandalonePage() {
         // Grade Filter
         if (gradeFilter !== 'ALL') {
             pages = pages.filter((page) => page.grade === gradeFilter);
+        }
+
+        // Search Filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            pages = pages.filter(
+                (page) =>
+                    page.pageName.toLowerCase().includes(q) ||
+                    page.pageUrl.toLowerCase().includes(q)
+            );
         }
 
         // Sorting
@@ -136,7 +149,10 @@ export default function StandalonePage() {
         }
 
         return pages;
-    }, [summary, sortBy, gradeFilter]);
+    }, [summary, sortBy, gradeFilter, searchQuery]);
+
+    // Reset to page 1 whenever search query or filters change
+    useEffect(() => { setCurrentPage(1); }, [searchQuery, gradeFilter, sortBy]);
 
     if (loading) return <FullscreenSkeleton />;
     if (!summary) return null;
@@ -410,19 +426,45 @@ export default function StandalonePage() {
 
                 {/* Pages Table */}
                 <div style={{ background: 'white', borderRadius: 12, border: '1px solid #F3F4F6', overflow: 'hidden' }}>
-                    <div
-                        style={{
-                            padding: '16px 20px',
-                            borderBottom: '1px solid #F3F4F6',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                        }}
-                    >
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>All Pages</span>
-                        <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-                            Showing {displayedPages.length} of {summary.totalPages} pages
-                        </span>
+                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>All Pages</span>
+                            <span style={{ fontSize: 11, color: '#9CA3AF' }}>
+                                Showing {Math.min(currentPage * PAGE_SIZE, displayedPages.length)} of {displayedPages.length} pages
+                                {searchQuery && ` (filtered from ${summary.totalPages})`}
+                            </span>
+                        </div>
+                        {/* Search Box */}
+                        <div style={{ position: 'relative' }}>
+                            <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <input
+                                type="text"
+                                placeholder="Search pages by name or URL..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 12px 8px 32px',
+                                    border: '1px solid #E5E7EB',
+                                    borderRadius: 8,
+                                    fontSize: 13,
+                                    fontFamily: 'var(--font-display)',
+                                    outline: 'none',
+                                    boxSizing: 'border-box',
+                                    color: '#374151',
+                                }}
+                                onFocus={(e) => (e.currentTarget.style.borderColor = '#EB1F1F')}
+                                onBlur={(e) => (e.currentTarget.style.borderColor = '#E5E7EB')}
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 16, lineHeight: 1 }}
+                                >×</button>
+                            )}
+                        </div>
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -484,7 +526,7 @@ export default function StandalonePage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {displayedPages.map((page) => {
+                            {displayedPages.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((page) => {
                                 const getCheck = (id: string) => page.checks.find((c) => c.id === id);
                                 return (
                                     <tr
@@ -570,6 +612,45 @@ export default function StandalonePage() {
                             })}
                         </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {displayedPages.length > PAGE_SIZE && (
+                        <div style={{ padding: '14px 20px', borderTop: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FAFAFA' }}>
+                            <span style={{ fontSize: 12, color: '#6B7280' }}>
+                                Page {currentPage} of {Math.ceil(displayedPages.length / PAGE_SIZE)}
+                                &nbsp;·&nbsp;
+                                {displayedPages.length} total results
+                            </span>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                {/* First */}
+                                <PaginationBtn onClick={() => setCurrentPage(1)} disabled={currentPage === 1} label="«" />
+                                {/* Prev */}
+                                <PaginationBtn onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} label="‹ Prev" />
+
+                                {/* Page numbers */}
+                                {Array.from({ length: Math.ceil(displayedPages.length / PAGE_SIZE) }, (_, i) => i + 1)
+                                    .filter(n => n === 1 || n === Math.ceil(displayedPages.length / PAGE_SIZE) || Math.abs(n - currentPage) <= 2)
+                                    .reduce((acc: (number | string)[], n, i, arr) => {
+                                        if (i > 0 && n - (arr[i-1] as number) > 1) acc.push('...');
+                                        acc.push(n);
+                                        return acc;
+                                    }, [])
+                                    .map((n, i) => n === '...'
+                                        ? <span key={`e${i}`} style={{ padding: '0 4px', color: '#9CA3AF', fontSize: 12 }}>…</span>
+                                        : <button key={n} onClick={() => setCurrentPage(n as number)}
+                                            style={{ minWidth: 32, height: 32, border: `1px solid ${currentPage === n ? '#EB1F1F' : '#E5E7EB'}`, borderRadius: 6, background: currentPage === n ? '#EB1F1F' : 'white', color: currentPage === n ? 'white' : '#374151', fontSize: 12, fontWeight: currentPage === n ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-display)' }}>
+                                            {n}
+                                          </button>
+                                    )
+                                }
+
+                                {/* Next */}
+                                <PaginationBtn onClick={() => setCurrentPage(p => Math.min(Math.ceil(displayedPages.length / PAGE_SIZE), p + 1))} disabled={currentPage === Math.ceil(displayedPages.length / PAGE_SIZE)} label="Next ›" />
+                                {/* Last */}
+                                <PaginationBtn onClick={() => setCurrentPage(Math.ceil(displayedPages.length / PAGE_SIZE))} disabled={currentPage === Math.ceil(displayedPages.length / PAGE_SIZE)} label="»" />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -875,6 +956,30 @@ function PageScoreTooltip({ active, payload }: any) {
                 </span>
             </div>
         </div>
+    );
+}
+
+
+// ─── Pagination Button ────────────────────────────────────────────────────────
+function PaginationBtn({ onClick, disabled, label }: { onClick: () => void; disabled: boolean; label: string }) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            style={{
+                padding: '6px 10px',
+                border: '1px solid #E5E7EB',
+                borderRadius: 6,
+                background: disabled ? '#F9FAFB' : 'white',
+                color: disabled ? '#D1D5DB' : '#374151',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-display)',
+            }}
+        >
+            {label}
+        </button>
     );
 }
 
