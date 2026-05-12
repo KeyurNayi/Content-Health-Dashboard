@@ -28,6 +28,7 @@ export const FIELD_MAP = {
         'Title', // Generic
         'Browser Title', // Older Sitecore SXA
         'BrowserTitle',
+        'SEOTitle',
         'OpenGraph Title',
         'Navigation Title',
     ],
@@ -38,6 +39,7 @@ export const FIELD_MAP = {
         'MetaDescription',
         'Description',
         'Meta Description', // SXA default (with space)
+        'SEODescription',
         'Abstract',
         'Summary',
     ],
