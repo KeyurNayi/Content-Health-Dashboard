@@ -28,7 +28,6 @@ export const FIELD_MAP = {
         'Title', // Generic
         'Browser Title', // Older Sitecore SXA
         'BrowserTitle',
-        'SEOTitle',
         'OpenGraph Title',
         'Navigation Title',
     ],
@@ -39,7 +38,6 @@ export const FIELD_MAP = {
         'MetaDescription',
         'Description',
         'Meta Description', // SXA default (with space)
-        'SEODescription',
         'Abstract',
         'Summary',
     ],
@@ -227,32 +225,54 @@ export async function fetchPagesFromXMCloud(
             return getDemoPageData();
         }
 
-        // Step 2: Fetch all pages under the home node
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: buildHeaders(accessToken),
-            body: JSON.stringify({
-                query: GET_PAGES_BY_PATH_QUERY,
-                variables: { rootItemId, language },
-            }),
-        });
+        // Step 2: Fetch ALL pages across all depth levels.
+        // We call the same working GET_PAGES_BY_PATH_QUERY once per parent item.
+        // Breadth-first: Home children first, then their children, etc.
+        const allResults: any[]    = [];
+        const queue:      string[] = [rootItemId];
+        const visited:    Set<string> = new Set([rootItemId]);
+        let   depth = 0;
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        while (queue.length > 0 && depth < 4) {
+            depth++;
+            const currentLevel = [...queue];
+            queue.length = 0;
 
-        const data = await res.json();
+            const levelFetches = await Promise.all(
+                currentLevel.map(async (parentId) => {
+                    try {
+                        const r = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: buildHeaders(accessToken),
+                            body: JSON.stringify({
+                                query: GET_PAGES_BY_PATH_QUERY,
+                                variables: { rootItemId: parentId, language },
+                            }),
+                        });
+                        if (!r.ok) return [];
+                        const d = await r.json();
+                        if (d.errors) return [];
+                        return (d?.data?.item?.children?.results || []).filter((i: any) => i);
+                    } catch { return []; }
+                })
+            );
 
-        if (data.errors) {
-            console.error('[ContentHealth] GraphQL errors:', data.errors);
-            return getDemoPageData();
+            for (const children of levelFetches) {
+                for (const child of children) {
+                    if (!child?.id || visited.has(child.id)) continue;
+                    visited.add(child.id);
+                    allResults.push(child);
+                    queue.push(child.id);
+                }
+            }
+
+            console.log(`[ContentHealth] Depth ${depth}: ${allResults.length} total pages`);
         }
 
-        const results = (data?.data?.item?.children?.results || []).filter((item: any) => item);
-        console.log(`[ContentHealth] Found ${results.length} pages`);
+        if (allResults.length === 0) return getDemoPageData();
 
-        if (results.length === 0) return getDemoPageData();
-
-        // Step 3: Map Sitecore items -> PageHealthData using flexible field mapping
-        return results.map((item: any) => mapItemToPageHealth(item));
+        // Step 3: Map Sitecore items -> PageHealthData
+        return allResults.map((item: any) => mapItemToPageHealth(item));
     } catch (err) {
         console.warn('[ContentHealth] Falling back to demo data:', err);
         return getDemoPageData();

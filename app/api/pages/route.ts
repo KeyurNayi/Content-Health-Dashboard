@@ -12,7 +12,8 @@ export async function GET(request: Request) {
 
     const language = searchParams.get('lang') || process.env.NEXT_PUBLIC_LANGUAGE || 'en';
 
-    const apiKey = process.env.SITECORE_API_KEY || '';
+    const pageUrl  = searchParams.get('pageUrl') || null;
+    const apiKey   = process.env.SITECORE_API_KEY || '';
 
     // No API key configured
     if (!apiKey || apiKey.startsWith('your-')) {
@@ -27,8 +28,25 @@ export async function GET(request: Request) {
 
     try {
         const pages = await fetchPagesFromXMCloud(apiKey, siteName, language);
-
         const isDemo = pages.some((p) => p.pageId.startsWith('demo-'));
+
+        // If pageUrl param given, filter to just that page for context panel
+        if (pageUrl) {
+            const normalize = (s: string) => s.toLowerCase().replace(/\/$/, '');
+            const match = pages.find(
+                (p) => normalize(p.pageUrl) === normalize(pageUrl) ||
+                       normalize(p.pageUrl).endsWith(normalize(pageUrl)) ||
+                       normalize(pageUrl).endsWith(normalize(p.pageUrl))
+            );
+            if (match) {
+                return NextResponse.json({
+                    source: isDemo ? 'demo' : 'sitecore',
+                    siteName, language, pageUrl,
+                    pages: [match],
+                    isSingle: true,
+                });
+            }
+        }
 
         return NextResponse.json({
             source: isDemo ? 'demo' : 'sitecore',
