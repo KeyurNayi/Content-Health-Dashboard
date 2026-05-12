@@ -87,7 +87,7 @@ export default function StandalonePage() {
             case 'date-desc':
                 pages.sort((a, b) => {
                     const getDateValue = (page: any) => {
-                        const rawDate = page.updated?.value || page.lastModified || page.fields?.find((f: any) => f.name === '__Updated')?.value;
+                        const rawDate = page.lastModified;
 
                         if (!rawDate) return 0;
 
@@ -112,7 +112,7 @@ export default function StandalonePage() {
             case 'date-asc':
                 pages.sort((a, b) => {
                     const getDateValue = (page: any) => {
-                        const rawDate = page.updated?.value || page.lastModified || page.fields?.find((f: any) => f.name === '__Updated')?.value;
+                        const rawDate = page.lastModified;
 
                         if (!rawDate) return 0;
 
@@ -534,7 +534,7 @@ export default function StandalonePage() {
                                                 // 2. Fall back to `lastModified` if available
                                                 // 3. Fall back to the __Updated field from the fields array
                                                 const rawDate =
-                                                    page.updated?.value || page.lastModified || page.fields?.find((f: any) => f.name === '__Updated')?.value;
+                                                    page.lastModified;
 
                                                 if (!rawDate) return '—';
 
