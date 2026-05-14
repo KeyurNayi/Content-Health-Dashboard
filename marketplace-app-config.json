@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.sitecore.com/marketplace/app-config.schema.json",
-  "name": "Content Health Dashboard",
+  "name": "SiteElevate",
   "description": "Monitor and improve content quality, SEO health, and accessibility across your XM Cloud site. Get real-time scores for meta titles, descriptions, alt text, word count, and more.",
   "version": "1.0.0",
   "author": "Your Name / Company",
@@ -25,7 +25,7 @@
     {
       "type": "fullscreen",
       "url": "https://your-deployed-app.vercel.app/standalone",
-      "label": "Content Health Dashboard",
+      "label": "SiteElevate",
       "description": "Full site audit with page-by-page breakdown and charts",
       "navLabel": "Health Dashboard"
     }

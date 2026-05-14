@@ -1,7 +1,7 @@
 {
   "name": "content-health-dashboard",
   "version": "1.0.0",
-  "description": "Sitecore AI Marketplace - Content Health Dashboard App",
+  "description": "Sitecore AI Marketplace - SiteElevate App",
   "private": true,
   "scripts": {
     "dev": "next dev",
