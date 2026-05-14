@@ -226,7 +226,7 @@ export default function StandalonePage() {
                         </svg>
                     </div>
                     <div>
-                        <div style={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1 }}>Content Health Dashboard</div>
+                        <div style={{ color: 'white', fontWeight: 700, fontSize: 15, lineHeight: 1 }}>SiteElevate</div>
                         <div style={{ color: '#6B7280', fontSize: 10 }}>Sitecore AI Marketplace App</div>
                     </div>
 

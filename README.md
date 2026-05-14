@@ -1,4 +1,4 @@
-# 🏥 Content Health Dashboard
+# 🏥 SiteElevate
 ### A Sitecore AI Marketplace Custom App
 
 Monitor and improve content quality, SEO health, and accessibility across your XM Cloud site — directly inside Sitecore.
@@ -96,7 +96,7 @@ This app must be **hosted by you** — Sitecore does not host Marketplace apps.
 ```bash
 git init
 git add .
-git commit -m "feat: Content Health Dashboard Marketplace App"
+git commit -m "feat: SiteElevate Marketplace App"
 git remote add origin https://github.com/YOUR_USERNAME/content-health-dashboard.git
 git push -u origin main
 ```
@@ -123,7 +123,7 @@ git push -u origin main
 
 1. Click **"Create App"**
 2. Fill in the details:
-   - **Name:** Content Health Dashboard
+   - **Name:** SiteElevate
    - **Description:** Monitor content quality, SEO, and accessibility across your XM Cloud site.
    - **App URL:** `https://your-app.vercel.app`
 3. Click **Save**
